@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-
 import * as Kilt from "@kiltprotocol/sdk-js";
 import { verifyDid } from "../backend/addVerification2Did";
 import { generateAccounts } from "../backend/generateAccount";
