@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Kilt from "@kiltprotocol/sdk-js";
-import 'react-native-url-polyfill/auto'; // Add URL polyfill to fix Hermes issues
+import 'react-native-url-polyfill/auto'; 
 import { verifyDid } from "../backend/addVerification2Did";
 import { generateAccounts } from "../backend/generateAccount";
 import { generateDid } from "../backend/generateDid";
@@ -25,17 +25,14 @@ const W3NScreen = () => {
   const [connected, setConnected] = useState(false);
   const [api, setApi] = useState(null);
 
-  // Custom logging function to capture logs for display
   const log = (message) => {
     console.log(message);
     setLogs((prevLogs) => [...prevLogs, { time: new Date().toISOString(), message: String(message) }]);
   };
 
-  // Initialize connection on component mount
   useEffect(() => {
     connectToKilt();
     return () => {
-      // Disconnect on unmount
       if (api) {
         api.disconnect().then(() => {
           log('Disconnected from KILT');
@@ -50,12 +47,10 @@ const W3NScreen = () => {
       const apiInstance = await Kilt.connect("wss://peregrine.kilt.io/");
       setApi(apiInstance);
       
-      // Check SDK version
       if (Kilt.version) {
         log(`KILT SDK Version: ${Kilt.version}`);
       }
       
-      // Check available KILT modules
       log(`Available KILT modules: ${Object.keys(Kilt).join(', ')}`);
       
       setConnected(true);
@@ -85,7 +80,6 @@ const W3NScreen = () => {
     try {
       log("Starting W3N claim process...");
       
-      // Faucet details
       const faucet = {
         publicKey: new Uint8Array([
           238, 93, 102, 137, 215, 142, 38, 187, 91, 53, 176, 68, 23, 64, 160, 101,
@@ -98,26 +92,21 @@ const W3NScreen = () => {
         ]),
       };
 
-      // Get signer from keypair
       const [submitter] = (await Kilt.getSignersForKeypair({
         keypair: faucet,
         type: "Ed25519",
       }));
 
-      // Check balance
       const balance = await api.query.system.account(submitter.id);
       log(`Balance: ${JSON.stringify(balance.toHuman())}`);
 
-      // Generate accounts
       log("Generating accounts...");
       let { holderAccount, issuerAccount } = generateAccounts();
 
-      // Generate holder DID
       log("Generating holder DID...");
       let holderDid = await generateDid(submitter, holderAccount);
       log(`Holder DID: ${holderDid.didDocument.id}`);
 
-      // Claim Web3 Name with user-provided name
       log(`Claiming W3N: ${name}`);
       try {
         await claimW3N(
@@ -129,14 +118,12 @@ const W3NScreen = () => {
         log(`W3N claimed successfully: ${name}`);
       } catch (w3nError) {
         log(`W3N claim failed: ${w3nError.message}`);
-        // Continue with the rest of the process even if W3N claim fails
+        
       }
 
-      // Generate issuer DID
       log("Generating issuer DID...");
       let issuerDid = await generateDid(submitter, issuerAccount);
 
-      // Verify DID
       log("Verifying DID...");
       issuerDid = await verifyDid(
         submitter,
@@ -144,7 +131,6 @@ const W3NScreen = () => {
         issuerDid.signers
       );
 
-      // Issue credential
       log("Issuing credential...");
       try {
         const credential = await issueCredential(

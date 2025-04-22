@@ -11,24 +11,3 @@ const App = () => {
 };
 
 export default App;
-
-// App.js
-// import React from 'react';
-// import { SafeAreaView, StyleSheet } from 'react-native';
-// import W3NWebViewScreen from './screens/W3NWebViewScreen';
-
-// const App = () => {
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <W3NWebViewScreen />
-//     </SafeAreaView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//   },
-// });
-
-// export default App;
