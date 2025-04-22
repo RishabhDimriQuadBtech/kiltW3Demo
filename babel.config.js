@@ -3,7 +3,7 @@ module.exports = function (api) {
   return {
     presets: [
       ['module:@react-native/babel-preset', {
-        unstable_transformImportMeta: true, // ✅ this is the key fix!
+        unstable_transformImportMeta: true,  
       }],
     ],
     plugins: [

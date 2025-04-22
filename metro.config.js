@@ -19,11 +19,11 @@ const config = {
   },
   resolver: {
     ...defaultConfig.resolver,
-    unstable_enablePackageExports: true, // ✅ critical to make "exports" field work
+    unstable_enablePackageExports: true, 
     unstable_conditionNames: [
-      'require',        // ✅ CJS
-      'react-native',   // ✅ RN-specific
-      'default'         // ✅ final fallback
+      'require',        
+      'react-native',   
+      'default'         
     ],
     sourceExts: [...defaultConfig.resolver.sourceExts, 'cjs', 'mjs', 'ts', 'tsx'],
     assetExts: [...defaultConfig.resolver.assetExts, 'png', 'jpg', 'jpeg', 'gif'],
