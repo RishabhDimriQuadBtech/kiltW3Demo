@@ -17,8 +17,8 @@ import { generateAccounts } from "../backend/generateAccount";
 import { generateDid } from "../backend/generateDid";
 import { issueCredential } from "../backend/issueCredential";
 import { claimW3N } from "../backend/claimW3N";
-
-const W3NScreen = () => {
+import ImportWalletScreen from './ImportWalletScreen';
+const W3NScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -102,6 +102,9 @@ const W3NScreen = () => {
 
       log("Generating accounts...");
       let { holderAccount, issuerAccount } = generateAccounts();
+      log("keypair generation complete");
+      log(`ISSUER_ACCOUNT_ADDRESS=${issuerAccount.publicKeyMultibase}`);
+      log(`HOLDER_ACCOUNT_ADDRESS=${holderAccount.publicKeyMultibase}`);
 
       log("Generating holder DID...");
       let holderDid = await generateDid(submitter, holderAccount);
@@ -186,7 +189,12 @@ const W3NScreen = () => {
           )}
         </TouchableOpacity>
       </View>
-
+      <TouchableOpacity
+        style={{ alignSelf: 'center', marginVertical: 10 }}
+        onPress={() => navigation.navigate('ImportWallet')}
+      >
+        <Text style={{ color: '#5c6bc0', fontWeight: '600' }}>Already have a wallet?</Text>
+      </TouchableOpacity>
       <View style={styles.logContainer}>
         <Text style={styles.logTitle}>Logs:</Text>
         <ScrollView style={styles.logScroll}>
