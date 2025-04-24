@@ -4,15 +4,42 @@ import type { MultibaseKeyPair } from "@kiltprotocol/types";
 interface GeneratedAccounts {
   issuerAccount: MultibaseKeyPair;
   holderAccount: MultibaseKeyPair;
+  issuerMnemonic: string;
+  holderMnemonic: string;
 }
 
 export function generateAccounts(): GeneratedAccounts {
-  const issuerAccount = Kilt.generateKeypair({ type: "ed25519" });
-  const holderAccount = Kilt.generateKeypair({ type: "ed25519" });
+  // Using the Polkadot/Substrate mnemonic generation directly
+  // Most KILT SDKs use this internally
+  const { mnemonicGenerate } = require('@polkadot/util-crypto');
+  
+  // Generate mnemonics
+  const issuerMnemonic = mnemonicGenerate();
+  const holderMnemonic = mnemonicGenerate();
+  
+  // Create keypairs from mnemonics
+  const issuerAccount = Kilt.generateKeypair({ 
+    type: "ed25519", 
+    mnemonic: issuerMnemonic 
+  });
+  
+  const holderAccount = Kilt.generateKeypair({ 
+    type: "ed25519", 
+    mnemonic: holderMnemonic 
+  });
 
+  console.log(`Issuer mnemonics:=${issuerMnemonic}`)
+
+  console.log(`Issuer mnemonics:=${holderMnemonic}`)
   console.log("keypair generation complete");
   console.log(`ISSUER_ACCOUNT_ADDRESS=${issuerAccount.publicKeyMultibase}`);
   console.log(`HOLDER_ACCOUNT_ADDRESS=${holderAccount.publicKeyMultibase}`);
+  console.log("Mnemonics generated and stored");
 
-  return { issuerAccount, holderAccount };
+  return { 
+    issuerAccount, 
+    holderAccount, 
+    issuerMnemonic, 
+    holderMnemonic 
+  };
 }
