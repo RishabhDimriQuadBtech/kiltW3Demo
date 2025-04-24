@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Clipboard,
 } from 'react-native';
 import * as Kilt from "@kiltprotocol/sdk-js";
 import 'react-native-url-polyfill/auto'; 
@@ -18,12 +19,16 @@ import { generateDid } from "../backend/generateDid";
 import { issueCredential } from "../backend/issueCredential";
 import { claimW3N } from "../backend/claimW3N";
 import ImportWalletScreen from './ImportWalletScreen';
+
 const W3NScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState([]);
   const [connected, setConnected] = useState(false);
   const [api, setApi] = useState(null);
+  const [holderMnemonic, setHolderMnemonic] = useState('');
+  const [issuerMnemonic, setIssuerMnemonic] = useState('');
+  const [accountsGenerated, setAccountsGenerated] = useState(false);
 
   const log = (message) => {
     console.log(message);
@@ -63,6 +68,11 @@ const W3NScreen = ({ navigation }) => {
     }
   };
 
+  const copyToClipboard = (text, type) => {
+    Clipboard.setString(text);
+    Alert.alert("Copied", `${type} copied to clipboard!`);
+  };
+
   const runTest = async () => {
     if (!name.trim()) {
       Alert.alert("Error", "Please enter a W3N name");
@@ -76,6 +86,9 @@ const W3NScreen = ({ navigation }) => {
 
     setLogs([]);
     setLoading(true);
+    setAccountsGenerated(false);
+    setHolderMnemonic('');
+    setIssuerMnemonic('');
 
     try {
       log("Starting W3N claim process...");
@@ -100,11 +113,18 @@ const W3NScreen = ({ navigation }) => {
       const balance = await api.query.system.account(submitter.id);
       log(`Balance: ${JSON.stringify(balance.toHuman())}`);
 
-      log("Generating accounts...");
-      let { holderAccount, issuerAccount } = generateAccounts();
+      log("Generating accounts with mnemonics...");
+      let { holderAccount, issuerAccount, holderMnemonic: hMnemonic, issuerMnemonic: iMnemonic } = generateAccounts();
+      
+      // Store mnemonics
+      setHolderMnemonic(hMnemonic);
+      setIssuerMnemonic(iMnemonic);
+      setAccountsGenerated(true);
+      
       log("keypair generation complete");
       log(`ISSUER_ACCOUNT_ADDRESS=${issuerAccount.publicKeyMultibase}`);
       log(`HOLDER_ACCOUNT_ADDRESS=${holderAccount.publicKeyMultibase}`);
+      log("Mnemonics generated and stored securely");
 
       log("Generating holder DID...");
       let holderDid = await generateDid(submitter, holderAccount);
@@ -121,7 +141,6 @@ const W3NScreen = ({ navigation }) => {
         log(`W3N claimed successfully: ${name}`);
       } catch (w3nError) {
         log(`W3N claim failed: ${w3nError.message}`);
-        
       }
 
       log("Generating issuer DID...");
@@ -167,47 +186,87 @@ const W3NScreen = ({ navigation }) => {
         </Text>
       </View>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Enter Web3 Name:</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="Enter name (e.g., testw3nabc)"
-          placeholderTextColor="#888"
-          editable={!loading}
-        />
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Enter Web3 Name:</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter name (e.g., testw3nabc)"
+            placeholderTextColor="#888"
+            editable={!loading}
+          />
+          <TouchableOpacity
+            style={[styles.button, loading && styles.disabledButton]}
+            onPress={runTest}
+            disabled={loading || !connected}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Claim W3N Name</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+        
         <TouchableOpacity
-          style={[styles.button, loading && styles.disabledButton]}
-          onPress={runTest}
-          disabled={loading || !connected}
+          style={styles.importWalletButton}
+          onPress={() => navigation.navigate('ImportWallet')}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Claim W3N Name</Text>
-          )}
+          <Text style={styles.importWalletText}>Already have a wallet?</Text>
         </TouchableOpacity>
-      </View>
-      <TouchableOpacity
-        style={{ alignSelf: 'center', marginVertical: 10 }}
-        onPress={() => navigation.navigate('ImportWallet')}
-      >
-        <Text style={{ color: '#5c6bc0', fontWeight: '600' }}>Already have a wallet?</Text>
-      </TouchableOpacity>
-      <View style={styles.logContainer}>
-        <Text style={styles.logTitle}>Logs:</Text>
-        <ScrollView style={styles.logScroll}>
-          {logs.map((log, index) => (
-            <Text key={index} style={styles.logText}>
-              {log.message}
+        
+        {accountsGenerated && (
+          <View style={styles.mnemonicContainer}>
+            <Text style={styles.mnemonicTitle}>Generated Mnemonics:</Text>
+            
+            <View style={styles.mnemonicBox}>
+              <Text style={styles.mnemonicLabel}>Holder Mnemonic:</Text>
+              <Text style={styles.mnemonicText} numberOfLines={2} ellipsizeMode="tail">
+                {holderMnemonic}
+              </Text>
+              <TouchableOpacity 
+                style={styles.copyButton}
+                onPress={() => copyToClipboard(holderMnemonic, "Holder Mnemonic")}
+              >
+                <Text style={styles.copyButtonText}>Copy</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.mnemonicBox}>
+              <Text style={styles.mnemonicLabel}>Issuer Mnemonic:</Text>
+              <Text style={styles.mnemonicText} numberOfLines={2} ellipsizeMode="tail">
+                {issuerMnemonic}
+              </Text>
+              <TouchableOpacity 
+                style={styles.copyButton}
+                onPress={() => copyToClipboard(issuerMnemonic, "Issuer Mnemonic")}
+              >
+                <Text style={styles.copyButtonText}>Copy</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.warningText}>
+              ⚠️ Important: Save these mnemonics securely. They provide access to your accounts.
             </Text>
-          ))}
-          {logs.length === 0 && !loading && (
-            <Text style={styles.emptyLogText}>No logs yet. Run the test to see results.</Text>
-          )}
-        </ScrollView>
-      </View>
+          </View>
+        )}
+        
+        <View style={styles.logContainer}>
+          <Text style={styles.logTitle}>Logs:</Text>
+          <View style={styles.logScroll}>
+            {logs.map((log, index) => (
+              <Text key={index} style={styles.logText}>
+                {log.message}
+              </Text>
+            ))}
+            {logs.length === 0 && !loading && (
+              <Text style={styles.emptyLogText}>No logs yet. Run the test to see results.</Text>
+            )}
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -216,6 +275,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
+    flex: 1,
   },
   header: {
     padding: 16,
@@ -270,9 +332,74 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  logContainer: {
-    flex: 1,
+  importWalletButton: {
+    alignSelf: 'center',
+    marginTop: 0,
+    marginBottom: 16,
+    padding: 8,
+  },
+  importWalletText: {
+    color: '#5c6bc0',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  mnemonicContainer: {
+    backgroundColor: 'white',
     margin: 16,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  mnemonicTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  mnemonicBox: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  mnemonicLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#666',
+  },
+  mnemonicText: {
+    fontFamily: 'monospace',
+    fontSize: 13,
+    color: '#333',
+    marginBottom: 8,
+  },
+  copyButton: {
+    backgroundColor: '#5c6bc0',
+    padding: 8,
+    borderRadius: 4,
+    alignSelf: 'flex-end',
+  },
+  copyButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  warningText: {
+    color: '#d32f2f',
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  logContainer: {
+    margin: 16,
+    marginTop: 0,
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 12,
@@ -281,6 +408,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
+    minHeight: 200,
+    maxHeight: 10000,
   },
   logTitle: {
     fontSize: 16,
@@ -288,7 +417,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   logScroll: {
-    flex: 1,
+    maxHeight: 250,
   },
   logText: {
     fontFamily: 'monospace',
