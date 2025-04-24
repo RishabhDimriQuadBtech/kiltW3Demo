@@ -9,18 +9,27 @@ interface GeneratedAccounts {
 }
 
 export function generateAccounts(): GeneratedAccounts {
+  // Using the Polkadot/Substrate mnemonic generation directly
+  // Most KILT SDKs use this internally
   const { mnemonicGenerate } = require('@polkadot/util-crypto');
+  
+  // Generate mnemonics
   const issuerMnemonic = mnemonicGenerate();
   const holderMnemonic = mnemonicGenerate();
+  
+  // Create keypairs from mnemonics
   const issuerAccount = Kilt.generateKeypair({ 
-    type: "sr25519", 
+    type: "ed25519", 
     mnemonic: issuerMnemonic 
   });
+  
   const holderAccount = Kilt.generateKeypair({ 
-    type: "sr25519", 
+    type: "ed25519", 
     mnemonic: holderMnemonic 
   });
+
   console.log(`Issuer mnemonics:=${issuerMnemonic}`)
+
   console.log(`Issuer mnemonics:=${holderMnemonic}`)
   console.log("keypair generation complete");
   console.log(`ISSUER_ACCOUNT_ADDRESS=${issuerAccount.publicKeyMultibase}`);
