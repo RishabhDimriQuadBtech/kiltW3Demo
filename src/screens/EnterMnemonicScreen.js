@@ -43,7 +43,8 @@ const EnterMnemonicScreen = ({ navigation }) => {
     setIsProcessing(true);
     try {
       const address = await checkAddressFromMnemonic(mnemonic);
-      navigation.navigate('Address', { address });
+      
+      navigation.navigate('Address', { address, mnemonic });
     } catch (error) {
       Alert.alert("Error", error.message || "Failed to process mnemonic");
     } finally {
@@ -53,7 +54,7 @@ const EnterMnemonicScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Write Mnemonic</Text>
+      <Text style={styles.title}>Enter Your Mnemonic</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter your mnemonic here..."

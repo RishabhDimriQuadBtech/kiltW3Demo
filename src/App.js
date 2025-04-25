@@ -31,6 +31,7 @@ const App = () => {
             name="Address"
             component={AddressScreen}
           />
+          
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
