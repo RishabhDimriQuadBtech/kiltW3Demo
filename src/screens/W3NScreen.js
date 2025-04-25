@@ -111,19 +111,28 @@ const W3NScreen = ({ navigation }) => {
       }));
 
       const balance = await api.query.system.account(submitter.id);
-      log(`Balance: ${JSON.stringify(balance.toHuman())}`);
+      // log(`Balance: ${JSON.stringify(balance.toHuman())}`);
 
       log("Generating accounts with mnemonics...");
-      let { holderAccount, issuerAccount, holderMnemonic: hMnemonic, issuerMnemonic: iMnemonic } = generateAccounts();
+      // let { holderAccount, issuerAccount, holderMnemonic: hMnemonic, issuerMnemonic,issuerWallet,holderWallet: iMnemonic } = generateAccounts();
+      let {
+        holderAccount,
+        issuerAccount,
+        holderMnemonic,
+        issuerMnemonic,
+        holderWallet,
+        issuerWallet,
+      } = generateAccounts();
       
+
       // Store mnemonics
-      setHolderMnemonic(hMnemonic);
-      setIssuerMnemonic(iMnemonic);
+      setHolderMnemonic(holderMnemonic);
+      setIssuerMnemonic(issuerMnemonic);
       setAccountsGenerated(true);
       
       log("keypair generation complete");
-      log(`ISSUER_ACCOUNT_ADDRESS=${issuerAccount.publicKeyMultibase}`);
-      log(`HOLDER_ACCOUNT_ADDRESS=${holderAccount.publicKeyMultibase}`);
+      log(`ISSUER_ACCOUNT_ADDRESS=${issuerWallet.address}`);
+      log(`HOLDER_ACCOUNT_ADDRESS=${holderWallet.address}`);
       log("Mnemonics generated and stored securely");
 
       log("Generating holder DID...");

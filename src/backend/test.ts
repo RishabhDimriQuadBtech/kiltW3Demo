@@ -29,7 +29,7 @@ async function runAll(): Promise<void> {
   })) as Array<SignerInterface<"Ed25519", KiltAddress>>;
 
   const balance = await api.query.system.account(submitter.id);
-  console.log("balance", balance.toHuman());
+  // console.log("balance", balance.toHuman());
   let { holderAccount, issuerAccount } = generateAccounts();
   console.log("Successfully transferred tokens");
 
