@@ -17,6 +17,9 @@ import { claimW3N } from "../backend/claimW3N";
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 
+import {  mnemonicToMiniSecret } from "@polkadot/util-crypto";
+import { u8aToHex } from "@polkadot/util";
+
 const AddressScreen = ({ route, navigation }) => {
   const { address, mnemonic } = route.params;
   const [w3nName, setW3nName] = useState('');
@@ -60,7 +63,7 @@ const AddressScreen = ({ route, navigation }) => {
       setCheckingW3n(true);
       log("Checking if address has associated W3N...");
   
-      // First, get the DID associated with this address
+      
       await cryptoWaitReady();
       const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
       const pair = keyring.addFromMnemonic(mnemonic);
@@ -68,20 +71,20 @@ const AddressScreen = ({ route, navigation }) => {
       log("Looking up DIDs for address: " + address);
       
       try {
-        // Try a more direct approach first - check for w3names directly
-        // Inside your checkForW3N function, where you handle the direct lookup:
+        
+        
         const w3Names = await apiInstance.query.web3Names.names(address);
         if (w3Names && !w3Names.isEmpty) {
-          // Original line
-          // const foundW3n = w3Names.toString();
           
-          // New approach - handle hex encoding
+          
+          
+          
           let foundW3n = w3Names.toString();
           
-          // Check if it's a hex string and decode it
+          
           if (foundW3n.startsWith('0x')) {
             try {
-              // Convert hex to string
+              
               foundW3n = Buffer.from(foundW3n.slice(2), 'hex').toString('utf8');
               log(`Decoded W3N from hex: ${foundW3n}`);
             } catch (decodeError) {
@@ -100,36 +103,36 @@ const AddressScreen = ({ route, navigation }) => {
         log(`Direct W3N lookup failed, trying alternative method: ${directError.message}`);
       }
       
-      // Alternative approach using DID lookup
+      
       try {
-        // Try to find DIDs associated with this account
-        // Use a safer approach that doesn't rely on specific account formats
+        
+        
         const encodedAddress = keyring.encodeAddress(pair.publicKey, 38);
         log("Using encoded address format: " + encodedAddress);
         
-        // Query by using the public key directly, which should be more reliable
+        
         const didIdentifiers = await apiInstance.call.did.queryByAccount(encodedAddress);
         
         if (didIdentifiers && didIdentifiers.length > 0) {
           log(`Found ${didIdentifiers.length} DIDs associated with this account`);
           
-          // For each DID, check if it has an associated W3N
+          
           for (const didIdentifier of didIdentifiers) {
-            // Get DID details
+            
             const didDetails = await apiInstance.call.did.query(didIdentifier);
             
             if (didDetails && didDetails.document) {
               const didDocument = didDetails.document;
               
-              // Check if this DID has any w3names (alsoKnownAs field)
+              
               if (didDocument.alsoKnownAs && didDocument.alsoKnownAs.length > 0) {
-                // Find W3N entries
+                
                 const w3nEntries = didDocument.alsoKnownAs.filter(aka => 
                   aka.startsWith('kilt:w3n:')
                 );
                 
                 if (w3nEntries.length > 0) {
-                  // Extract just the name part from "kilt:w3n:name"
+                  
                   const foundW3n = w3nEntries[0].split(':')[2];
                   setW3nName(foundW3n);
                   setHasW3n(true);
@@ -198,17 +201,17 @@ const AddressScreen = ({ route, navigation }) => {
 
       
       await cryptoWaitReady();
-      // Inside your claimNewW3Name function
+      
       const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
       const accountPair = keyring.addFromMnemonic(mnemonic);
 
-      // Create a keypair for KILT SDK using the appropriate seed format
-      const holderAccount = Kilt.generateKeypair({
-        type: "sr25519",
-        seed: accountPair.secretKey // Use secretKey instead of publicKey
-      });
+      const holderSeed = u8aToHex(mnemonicToMiniSecret(mnemonic));
+      const holderAccount = Kilt.generateKeypair({ 
+          type: "sr25519", 
+          seed: holderSeed, 
+        });
       
-      log("Using existing account address: " + address);
+      log("Using existing account address: " + holderAccount.publicKeyMultibase);
 
       
       log("Generating holder DID...");
