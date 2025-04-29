@@ -4,10 +4,14 @@ import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/keyring';
 import { mnemonicValidate } from '@polkadot/util-crypto';
 import { ApiPromise, WsProvider } from '@polkadot/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const EnterMnemonicScreen = ({ navigation }) => {
   const [mnemonic, setMnemonic] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+
+
 
   const checkAddressFromMnemonic = async (mnemonic) => {
     try {
@@ -35,23 +39,59 @@ const EnterMnemonicScreen = ({ navigation }) => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!mnemonic.trim()) {
-      Alert.alert("Error", "Mnemonic cannot be empty");
-      return;
-    }
-    setIsProcessing(true);
+
+  const storeMnemonic = async (mnemonic, address) => {
     try {
-      const address = await checkAddressFromMnemonic(mnemonic);
-      
-      navigation.navigate('Address', { address, mnemonic });
+      // Store mnemonic in AsyncStorage
+      await AsyncStorage.setItem('@user_mnemonic', mnemonic);
+      await AsyncStorage.setItem('@user_address', address);
+      console.log('Mnemonic saved successfully.');
     } catch (error) {
-      Alert.alert("Error", error.message || "Failed to process mnemonic");
-    } finally {
-      setIsProcessing(false);
+      console.error('Failed to save mnemonic', error);
     }
   };
+  // const handleSubmit = async () => {
+  //   if (!mnemonic.trim()) {
+  //     Alert.alert("Error", "Mnemonic cannot be empty");
+  //     return;
+  //   }
+  //   setIsProcessing(true);
+  //   try {
+  //     const address = await checkAddressFromMnemonic(mnemonic);
+  //     await storeMnemonic(mnemonic);
 
+  //     navigation.navigate('Address', { address, mnemonic });
+  //   } catch (error) {
+  //     Alert.alert("Error", error.message || "Failed to process mnemonic");
+  //   } finally {
+  //     setIsProcessing(false);
+  //   }
+  // };
+ const handleSubmit = async () => {
+   if (!mnemonic.trim()) {
+     Alert.alert('Error', 'Mnemonic cannot be empty');
+     return;
+   }
+
+   setIsProcessing(true);
+   try {
+     const address = await checkAddressFromMnemonic(mnemonic);
+     await storeMnemonic(mnemonic, address);
+     navigation.navigate('Address', {address});
+   } catch (error) {
+     let message = 'Failed to process mnemonic';
+     if (error.message.includes('Invalid mnemonic')) {
+       message = 'The mnemonic phrase is invalid';
+     } else if (error.message.includes('Connection')) {
+       message = 'Network connection failed';
+     } else if (error.message.includes('timeout')) {
+       message = 'Connection timed out';
+     }
+     Alert.alert('Error', message);
+   } finally {
+     setIsProcessing(false);
+   }
+ };
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Enter Your Mnemonic</Text>

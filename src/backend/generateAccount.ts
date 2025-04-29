@@ -1,9 +1,72 @@
-import * as Kilt from "@kiltprotocol/sdk-js";
-import type { MultibaseKeyPair } from "@kiltprotocol/types";
-import { mnemonicGenerate, mnemonicToMiniSecret } from "@polkadot/util-crypto";
-import { u8aToHex } from "@polkadot/util";
-import { Keyring } from "@polkadot/keyring/cjs/keyring";
-import type { KeyringPair } from "@polkadot/keyring/types";
+// import * as Kilt from "@kiltprotocol/sdk-js";
+// import type { MultibaseKeyPair } from "@kiltprotocol/types";
+// import { mnemonicGenerate, mnemonicToMiniSecret } from "@polkadot/util-crypto";
+// import { u8aToHex } from "@polkadot/util";
+// import { Keyring } from "@polkadot/keyring/cjs/keyring";
+// import type { KeyringPair } from "@polkadot/keyring/types";
+
+// interface GeneratedAccounts {
+//   issuerAccount: MultibaseKeyPair;
+//   holderAccount: MultibaseKeyPair;
+//   issuerMnemonic: string;
+//   holderMnemonic: string;
+//   issuerWallet: KeyringPair;
+//   holderWallet: KeyringPair;
+// }
+
+// export function generateAccounts(): GeneratedAccounts {
+//   const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 }); // KILT chain
+
+//   const issuerMnemonic = mnemonicGenerate();
+//   const holderMnemonic = mnemonicGenerate();
+  
+//   const issuerSeed = u8aToHex(mnemonicToMiniSecret(issuerMnemonic));
+//   const holderSeed = u8aToHex(mnemonicToMiniSecret(holderMnemonic));
+
+//   const issuerAccount = Kilt.generateKeypair({ 
+//     type: "sr25519", 
+//     seed: issuerSeed, 
+//   });
+  
+//   const holderAccount = Kilt.generateKeypair({ 
+//     type: "sr25519", 
+//     seed: holderSeed, 
+//   });
+
+//   const issuerWallet = keyring.addFromMnemonic(issuerMnemonic);
+//   const holderWallet = keyring.addFromMnemonic(holderMnemonic);
+
+
+//   console.log("=== ISSUER ===");
+//   console.log("Mnemonic:", issuerMnemonic);
+//   console.log("DID publicKey:", issuerAccount.publicKeyMultibase);
+//   console.log("Wallet Address:", issuerWallet.address);
+
+//   console.log("=== HOLDER ===");
+//   console.log("Mnemonic:", holderMnemonic);
+//   console.log("DID publicKey:", holderAccount.publicKeyMultibase);
+//   console.log("Wallet Address:", holderWallet.address);
+
+//   return { 
+//     holderAccount,
+//     issuerAccount,
+//     holderMnemonic,
+//     issuerMnemonic,
+//     holderWallet,
+//     issuerWallet,
+//   };
+// }
+
+
+
+
+import * as Kilt from '@kiltprotocol/sdk-js';
+import type {MultibaseKeyPair} from '@kiltprotocol/types';
+import {mnemonicGenerate, mnemonicToMiniSecret} from '@polkadot/util-crypto';
+import {u8aToHex} from '@polkadot/util';
+import {Keyring} from '@polkadot/keyring/cjs/keyring';
+import type {KeyringPair} from '@polkadot/keyring/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface GeneratedAccounts {
   issuerAccount: MultibaseKeyPair;
@@ -14,40 +77,57 @@ interface GeneratedAccounts {
   holderWallet: KeyringPair;
 }
 
-export function generateAccounts(): GeneratedAccounts {
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 }); // KILT chain
+export async function generateAccounts(): Promise<GeneratedAccounts> {
+  const keyring = new Keyring({type: 'sr25519', ss58Format: 38});
+
+ 
+  const savedHolderAddress = await AsyncStorage.getItem('@user_address');
+let holderMnemonic = await AsyncStorage.getItem('@user_mnemonic');
+
+  console.log('savedHolderMnemonic:', holderMnemonic);
+  console.log('savedHolderAddress:', savedHolderAddress);
+
+  if (!holderMnemonic || !savedHolderAddress) {
+    console.log(
+      'Holder mnemonic or address not found. Generating new holder mnemonic.',
+    );
+    holderMnemonic = mnemonicGenerate();
+    await AsyncStorage.setItem('@holder_mnemonic', holderMnemonic);
+  } else {
+     console.log('Using existing holder mnemonic and address from AsyncStorage.');
+    // Clean up AsyncStorage after first use
+       await AsyncStorage.removeItem('@user_address');
+       await AsyncStorage.removeItem('@user_mnemonic');
+  }
 
   const issuerMnemonic = mnemonicGenerate();
-  const holderMnemonic = mnemonicGenerate();
-  
+
   const issuerSeed = u8aToHex(mnemonicToMiniSecret(issuerMnemonic));
   const holderSeed = u8aToHex(mnemonicToMiniSecret(holderMnemonic));
 
-  const issuerAccount = Kilt.generateKeypair({ 
-    type: "sr25519", 
-    seed: issuerSeed, 
+  const issuerAccount = Kilt.generateKeypair({
+    type: 'sr25519',
+    seed: issuerSeed,
   });
-  
-  const holderAccount = Kilt.generateKeypair({ 
-    type: "sr25519", 
-    seed: holderSeed, 
+  const holderAccount = Kilt.generateKeypair({
+    type: 'sr25519',
+    seed: holderSeed,
   });
 
   const issuerWallet = keyring.addFromMnemonic(issuerMnemonic);
   const holderWallet = keyring.addFromMnemonic(holderMnemonic);
 
+  console.log('=== ISSUER ===');
+  console.log('Mnemonic:', issuerMnemonic);
+  console.log('DID publicKey:', issuerAccount.publicKeyMultibase);
+  console.log('Wallet Address:', issuerWallet.address);
 
-  console.log("=== ISSUER ===");
-  console.log("Mnemonic:", issuerMnemonic);
-  console.log("DID publicKey:", issuerAccount.publicKeyMultibase);
-  console.log("Wallet Address:", issuerWallet.address);
+  console.log('=== HOLDER ===');
+  console.log('Mnemonic:', holderMnemonic);
+  console.log('DID publicKey:', holderAccount.publicKeyMultibase);
+  console.log('Wallet Address:', holderWallet.address);
 
-  console.log("=== HOLDER ===");
-  console.log("Mnemonic:", holderMnemonic);
-  console.log("DID publicKey:", holderAccount.publicKeyMultibase);
-  console.log("Wallet Address:", holderWallet.address);
-
-  return { 
+  return {
     holderAccount,
     issuerAccount,
     holderMnemonic,
@@ -56,3 +136,4 @@ export function generateAccounts(): GeneratedAccounts {
     issuerWallet,
   };
 }
+

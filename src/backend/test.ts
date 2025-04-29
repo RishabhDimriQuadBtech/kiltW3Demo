@@ -5,6 +5,7 @@ import { generateDid } from "./generateDid.ts";
 import { Balances, KiltAddress, SignerInterface } from "@kiltprotocol/types";
 import { issueCredential } from "./issueCredential.ts";
 import { claimW3N } from "./claimW3N.ts";
+import { queryW3N } from "./checkname.ts";
 
 async function runAll(): Promise<void> {
   let api = await Kilt.connect("wss://peregrine.kilt.io/");
@@ -29,7 +30,7 @@ async function runAll(): Promise<void> {
   })) as Array<SignerInterface<"Ed25519", KiltAddress>>;
 
   const balance = await api.query.system.account(submitter.id);
-  // console.log("balance", balance.toHuman());
+  console.log("balance", balance.toHuman());
   let { holderAccount, issuerAccount } = generateAccounts();
   console.log("Successfully transferred tokens");
 
@@ -50,6 +51,12 @@ async function runAll(): Promise<void> {
     issuerDid.signers
   );
 
+  console.log('start to check the web3name');
+  // const queryW3N = await api.query.web3Names.names(
+  //   holderDid.didDocument.id.replace("did:kilt:", "")
+  // );
+ const checkname = await queryW3N;
+ console.log( 'The web3name claimed by DID', checkname);
   const credential = await issueCredential(
     issuerDid.didDocument,
     holderDid.didDocument,
