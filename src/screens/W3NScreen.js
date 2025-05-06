@@ -111,10 +111,8 @@ const W3NScreen = ({ navigation }) => {
       }));
 
       const balance = await api.query.system.account(submitter.id);
-      // log(`Balance: ${JSON.stringify(balance.toHuman())}`);
-
+      
       log("Generating accounts with mnemonics...");
-      // let { holderAccount, issuerAccount, holderMnemonic: hMnemonic, issuerMnemonic,issuerWallet,holderWallet: iMnemonic } = generateAccounts();
       let {
         holderAccount,
         issuerAccount,
@@ -125,7 +123,6 @@ const W3NScreen = ({ navigation }) => {
       } = generateAccounts();
       
 
-      // Store mnemonics
       setHolderMnemonic(holderMnemonic);
       setIssuerMnemonic(issuerMnemonic);
       setAccountsGenerated(true);
