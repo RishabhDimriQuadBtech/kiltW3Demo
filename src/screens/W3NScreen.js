@@ -123,6 +123,7 @@ const W3NScreen = ({ navigation }) => {
       } = generateAccounts();
       
 
+      // Store mnemonics
       setHolderMnemonic(holderMnemonic);
       setIssuerMnemonic(issuerMnemonic);
       setAccountsGenerated(true);

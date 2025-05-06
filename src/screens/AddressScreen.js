@@ -64,6 +64,7 @@ const AddressScreen = ({ route, navigation }) => {
     }
   };
 
+
   const getHolderDid = async () => {
   try {
     setLoadingDid(true);
@@ -76,6 +77,7 @@ const AddressScreen = ({ route, navigation }) => {
       log("Reconnected to KILT network");
     }
     
+    // Derive the address's public key
     await cryptoWaitReady();
     const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
     const pair = keyring.addFromMnemonic(mnemonic);
@@ -96,9 +98,11 @@ const AddressScreen = ({ route, navigation }) => {
           didIdentifier = didInfo.uri;
           log("Using URI from DID details: " + didIdentifier);
         } else if (didInfo && didInfo.document) {
+          // Extract from document field
           didIdentifier = didInfo.document.id || `did:kilt:${address}`;
           log("Extracted DID from document: " + didIdentifier);
         } else {
+          // Fallback to formatting
           didIdentifier = `did:kilt:${address}`;
           log("Using formatted DID: " + didIdentifier);
         }
@@ -107,47 +111,7 @@ const AddressScreen = ({ route, navigation }) => {
         return didIdentifier;
       }
       
-      try {
-        log("Attempting DID resolution via KILT SDK...");
-        const didToResolve = `did:kilt:${address}`;
-        
-        if (Kilt.Did && Kilt.Did.resolve) {
-          const resolvedDid = await Kilt.Did.resolve(didToResolve);
-          
-          if (resolvedDid && !resolvedDid.metadata.deactivated) {
-            log("Successfully resolved DID: " + didToResolve);
-            setHolderDid(didToResolve);
-            return didToResolve;
-          } else if (resolvedDid && resolvedDid.metadata.deactivated) {
-            log("DID exists but is deactivated: " + didToResolve);
-            setHolderDid("");
-            return null;
-          }
-        } else {
-          log("KILT SDK resolver not available");
-        }
-      } catch (resolveError) {
-        log(`DID resolution error: ${resolveError.message}`);
-      }
-      
-      try {
-        log("Checking authentication key relationships...");
-        const authKeyQuery = await api.query.didLookup.authenticationKeys(publicKey);
-        
-        if (authKeyQuery && !authKeyQuery.isEmpty) {
-          const linkedDid = authKeyQuery.toString();
-          log(`Found DID linked to this public key: ${linkedDid}`);
-          const formattedDid = linkedDid.startsWith('did:kilt:') 
-            ? linkedDid 
-            : `did:kilt:${linkedDid}`;
-            
-          setHolderDid(formattedDid);
-          return formattedDid;
-        }
-      } catch (keyError) {
-        log(`Key relationship lookup error: ${keyError.message}`);
-      }
-      
+      // If we've reached here, no DID was found
       log("No DID found for this address after all resolution methods");
       setHolderDid("");
       return null;
