@@ -4,6 +4,8 @@ import { mnemonicGenerate, mnemonicToMiniSecret } from "@polkadot/util-crypto";
 import { u8aToHex } from "@polkadot/util";
 import { Keyring } from "@polkadot/keyring/cjs/keyring";
 import type { KeyringPair } from "@polkadot/keyring/types";
+import {multibaseKeyToDidKey} from '@kiltprotocol/did';
+import {encodeAddress} from '@polkadot/util-crypto';
 
 interface GeneratedAccounts {
   issuerAccount: MultibaseKeyPair;
@@ -46,6 +48,18 @@ export function generateAccounts(): GeneratedAccounts {
   console.log("Mnemonic:", holderMnemonic);
   console.log("DID publicKey:", holderAccount.publicKeyMultibase);
   console.log("Wallet Address:", holderWallet.address);
+
+
+  const holderMultibaseKeyToDidKey = multibaseKeyToDidKey(
+    issuerAccount.publicKeyMultibase,
+  );
+  console.log('holder publicKey:', holderMultibaseKeyToDidKey.publicKey);
+  console.log('holder publicKey type:', holderMultibaseKeyToDidKey.keyType);
+
+  const hexIssuer = u8aToHex(holderMultibaseKeyToDidKey.publicKey);
+  console.log('holder publicKey hex:', hexIssuer);
+  const holderEncodedAddhress = encodeAddress(hexIssuer, 38);
+  console.log('holder publicKey address:', holderEncodedAddhress);
 
   return { 
     holderAccount,

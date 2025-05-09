@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@kiltprotocol/credentials": "^0.100.0",
+    "@kiltprotocol/did": "^0.100.0",
     "@kiltprotocol/sdk-js": "^1.0.0",
     "@kiltprotocol/types": "^0.100.0",
     "@kiltprotocol/utils": "^0.100.0",
@@ -19,6 +20,7 @@
     "@polkadot/rpc-provider": "^15.9.2",
     "@polkadot/util": "^13.4.4",
     "@polkadot/util-crypto": "^13.4.4",
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.10",
     "bip39": "^3.1.0",
