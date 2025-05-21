@@ -160,6 +160,30 @@ const W3NScreen = ({ navigation }) => {
         issuerDid.signers
       );
 
+      // const faucetMnemonic =
+      //       'receive clutch item involve chaos clutch furnace arrest claw isolate okay together';
+
+      //   const faucet = Kilt.generateKeypair({ seed: faucetMnemonic });
+
+      //   const submitter = (await Kilt.getSignersForKeypair({
+      //       keypair: faucet,
+      //       type: 'Ed25519',
+      //   }))[0];
+      //   console.log('submitter address', submitter.id);
+
+      //   const balance = await api.query.system.account(submitter.id);
+      //   console.log('balance', balance.toHuman());
+      //   let { holderAccount, issuerAccount, getSubmittableAccount } =
+      //       generateAccounts();
+      //   console.log("holder")
+      //   console.log(holderAccount.publicKeyMultibase)
+        
+      //   console.log(holderAccount.secretKeyMultibase)
+      //   console.log('Successfully transferred tokens');
+
+      //   let holderDid = await generateDid(holderAccount, submitter);
+      //   console.log(holderDid.didDocument.id)
+        
       log("Issuing credential...");
       try {
         const credential = await issueCredential(

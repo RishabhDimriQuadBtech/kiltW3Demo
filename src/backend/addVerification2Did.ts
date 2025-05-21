@@ -32,5 +32,9 @@ export async function verifyDid(
   ({ didDocument, signers } = vmTransactionResult.asConfirmed);
 
   console.log("assertion method added");
+  console.log("assertionKeyPair");
+  console.log("assertionKeyPair.secretKeyMultibase: ",assertionKeyPair.secretKeyMultibase);
+  console.log("assertionKeyPair.publicKeyMultibase: " + assertionKeyPair.publicKeyMultibase);
+  
   return { didDocument, signers };
 }

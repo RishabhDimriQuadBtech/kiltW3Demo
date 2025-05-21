@@ -30,6 +30,12 @@ export function generateAccounts(): GeneratedAccounts {
     seed: issuerSeed, 
   });
   
+  //new 
+  const createHolderDidMnemonic = holderMnemonic + '//did//1'
+  console.log("new holder mnemonic",createHolderDidMnemonic);
+
+
+
   const holderAccount = Kilt.generateKeypair({ 
     type: "sr25519", 
     seed: holderSeed, 
@@ -50,16 +56,20 @@ export function generateAccounts(): GeneratedAccounts {
   console.log("Wallet Address:", holderWallet.address);
 
 
-  const holderMultibaseKeyToDidKey = multibaseKeyToDidKey(
+  console.log("Issuer:-")
+  console.log("Public Key: "+issuerAccount.publicKeyMultibase);
+  console.log("Secret Key: "+issuerAccount.secretKeyMultibase);
+  
+  const issuerMultibaseKeyToDidKey = multibaseKeyToDidKey(
     issuerAccount.publicKeyMultibase,
   );
-  console.log('holder publicKey:', holderMultibaseKeyToDidKey.publicKey);
-  console.log('holder publicKey type:', holderMultibaseKeyToDidKey.keyType);
+  console.log('issuer publicKey:', issuerMultibaseKeyToDidKey.publicKey);
+  console.log('issuer publicKey type:', issuerMultibaseKeyToDidKey.keyType);
 
-  const hexIssuer = u8aToHex(holderMultibaseKeyToDidKey.publicKey);
-  console.log('holder publicKey hex:', hexIssuer);
-  const holderEncodedAddhress = encodeAddress(hexIssuer, 38);
-  console.log('holder publicKey address:', holderEncodedAddhress);
+  const hexIssuer = u8aToHex(issuerMultibaseKeyToDidKey.publicKey);
+  console.log('issuer publicKey hex:', hexIssuer);
+  const issuerEncodedAddhress = encodeAddress(hexIssuer, 38);
+  console.log('issuer publicKey address:', issuerEncodedAddhress);
 
   return { 
     holderAccount,
