@@ -17,6 +17,7 @@ import { claimW3N } from "../backend/claimW3N";
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 
+import { Crypto } from "@kiltprotocol/utils";
 import {getFullDid} from '@kiltprotocol/did';
 import { mnemonicToMiniSecret } from "@polkadot/util-crypto";
 import { u8aToHex } from "@polkadot/util";
@@ -71,38 +72,109 @@ const AddressScreen = ({ route, navigation }) => {
   const retrieveHolderDid = async (apiInstance) => {
     try {
       setLoadingDid(true);
-      // setResolutionError('');
-      log(`Starting DID resolution for ${address}`);
-      const didUri = await getFullDid(address);
-      // const didUri = `did:kilt:${address}`;
-      const document = await didResolve(didUri);
-      
-      if (!document) {
-        log('No DID document found');
-        // setDidDocument(null);
-        setHolderDid('');
-        return;
-      }
+      log("Retrieving holder DID...");
 
-      log('Resolved DID document successfully');
-      // setDidDocument(document);
-      setHolderDid(document.id);
-      
-      // Optional: Verify document structure
-      if (!document.authentication || document.authentication.length === 0) {
-        log('⚠️ DID document missing authentication keys');
-      }
+  const activeApi = apiInstance || api;
+  
+  if (!activeApi) {
+    log("No API connection available");
+    return null;
+  }
 
-    } catch (error) {
-      log(`Resolution failed: ${error.message}`);
-      // setResolutionError(error.message);
-      // setDidDocument(null);
-      setHolderDid('');
-      Alert.alert('DID Resolution Error', error.message);
-    } finally {
-      setLoadingDid(false);
-    }
+  await cryptoWaitReady();
+  const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
+  const pair = keyring.addFromMnemonic(mnemonic);
+
+
+  //
+const walletKeypair = Crypto.makeKeypairFromUri(mnemonic, 'sr25519')// ......
+
+// DID authentication keypair (different keypair, derived from wallet mnemonic)
+const authKeypair = Crypto.makeKeypairFromUri(`${mnemonic}//did//0`, 'sr25519') ///.....
+
+// Other DID keys
+// const assertionKeypair = Crypto.makeKeypairFromUri(`${mnemonic}//did//0`, 'sr25519')
+// const keyAgreementKeypair = Crypto.makeEncryptionKeypairFromSeed(
+//   Crypto.mnemonicToMiniSecret(`${mnemonic}//did//0`)
+// )
+
+console.log('Wallet address:', walletKeypair.address)
+console.log('DID Authentication address:', authKeypair.address)
+// console.log('DID Assertion address:', assertionKeypair.address)
+// console.log('DID KeyAgreement address:', keyAgreementKeypair.address)
+
+
+
+
+  const keypair = Crypto.makeKeypairFromUri(mnemonic, 'sr25519')
+  const didUri = `did:kilt:${authKeypair.address}`
+  log(`didUri: ${didUri}`);
+  const derivedAddress = pair.address;
+  log("Looking up DID for derived address: " + derivedAddress);
+
+  const newDid = await getFullDid(derivedAddress);
+  
+  // const newDid = "did:kilt:4o4bzJKFuqX4UxKRyBSGCnEUPzhQ3FRmEZ9UoBuPjFbs7WcQ";
+  const { didDocument } = await did_1.resolver.resolve(didUri);
+  if(didDocument){
+    log("did document: "+didDocument.id);
+    setHolderDid(didDocument.id);
+    return;
+  }
+  else{
+    log("did not found");
+  }
+  return;
+  
+} catch (error) {
+  log(`Error retrieving DID: ${error.message}`);
+  Alert.alert("Error", `Failed to retrieve DID: ${error.message}`);
+  setHolderDid("");
+  return null;
+} finally {
+  setLoadingDid(false);
+}
   };
+
+  // const retrieveHolderDid = async (apiInstance) => {
+  //   try {
+  //     setLoadingDid(true);
+  //     // setResolutionError('');
+  //     log(`Starting DID resolution for ${address}`);
+  //     const dids = await apiInstance.call.did.queryByAccount(address);
+  //     console.log(dids.map(did => did.uri));
+  //     // const didUri = await getFullDid(address);
+  //     // const didUri = `did:kilt:${address}`;
+      // const didUri="did:kilt:4o4bzJKFuqX4UxKRyBSGCnEUPzhQ3FRmEZ9UoBuPjFbs7WcQ";
+      // const document = await didResolve(didUri);
+      // log(`document ${document}`);
+      
+  //     if (!document) {
+  //       log('No DID document found');
+  //       // setDidDocument(null);
+  //       setHolderDid('');
+  //       return;
+  //     }
+
+  //     log('Resolved DID document successfully');
+  //     // setDidDocument(document);
+  //     setHolderDid(document.id);
+      
+  //     // Optional: Verify document structure
+  //     if (!document.authentication || document.authentication.length === 0) {
+  //       log('⚠️ DID document missing authentication keys');
+  //     }
+
+  //   } catch (error) {
+  //     log(`Resolution failed: ${error.message}`);
+  //     // setResolutionError(error.message);
+  //     // setDidDocument(null);
+  //     setHolderDid('');
+  //     Alert.alert('DID Resolution Error', error.message);
+  //   } finally {
+  //     setLoadingDid(false);
+  //   }
+  // };
 
   const checkForW3N = async (apiInstance) => {
     try {
@@ -119,10 +191,12 @@ const AddressScreen = ({ route, navigation }) => {
       await cryptoWaitReady();
       const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
       const pair = keyring.addFromMnemonic(mnemonic);
-      log("Looking up W3N for address: " + address);
+      log("Looking up W3N for address: " + pair.address);
+      let newAdd=holderDid;
       
       try {
-        const w3Names = await activeApi.query.web3Names.names(address);
+        const w3Names = await activeApi.query.web3Names.names(newAdd.replace('did:kilt:', ''));
+        log(`w3N ${w3Names.toHuman()}`);
         if (w3Names && !w3Names.isEmpty) {
           let foundW3n = w3Names.toString();
           if (foundW3n.startsWith('0x')) {
