@@ -7,7 +7,7 @@ import type {
 } from "@kiltprotocol/types";
 
 export async function generateDid(
-  submitter: SignerInterface<"Ed25519", KiltAddress>,
+  submitter: SignerInterface<"Sr25519", KiltAddress>,
   authenticationKeyPair: MultibaseKeyPair
 ): Promise<{ didDocument: DidDocument; signers: SignerInterface[] }> {
   const api = Kilt.ConfigService.get("api");
@@ -26,6 +26,6 @@ export async function generateDid(
   }
 
   let { didDocument, signers } = didDocumentTransactionResult.asConfirmed;
-  console.log(`ISSUER_DID_URI=${didDocument.id}`);
+  console.log(`DID_URI=${didDocument.id}`);
   return { didDocument, signers };
 }

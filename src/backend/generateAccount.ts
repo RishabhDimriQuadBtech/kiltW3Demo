@@ -28,11 +28,15 @@ export function generateAccounts(): GeneratedAccounts {
   const issuerMnemonic = mnemonicGenerate();
   const holderMnemonic = mnemonicGenerate();
   
-  // const issuerSeed = u8aToHex(mnemonicToMiniSecret(issuerMnemonic));
-  // const holderSeed = u8aToHex(mnemonicToMiniSecret(holderMnemonic));
+  const issuerSeed = u8aToHex(mnemonicToMiniSecret(issuerMnemonic));
+  const holderSeed = u8aToHex(mnemonicToMiniSecret(holderMnemonic));
+// const keypair=deriveAuthenticationKey(holderSeed)
+  // const issuerDidKey = keyring.createFromUri(`${issuerMnemonic}//did//0`);
+  // const holderDidKey = keyring.createFromUri(`${holderMnemonic}//did//0`);
+  // console.log("holder did key",holderDidKey);
 
-  const issuerSeed = mnemonicToMiniSecret(issuerMnemonic);
-  const holderSeed = mnemonicToMiniSecret(holderMnemonic);
+  // const issuerSeed = mnemonicToMiniSecret(issuerMnemonic);
+  // const holderSeed = mnemonicToMiniSecret(holderMnemonic);
 
   // const holderAccount = Crypto.makeKeypairFromSeed(
   //   holderSeed,
@@ -45,18 +49,18 @@ export function generateAccounts(): GeneratedAccounts {
   // )
   
   
-  //new 
-  const createHolderDidMnemonic = holderMnemonic + '//did//1'
-  console.log("new holder mnemonic",createHolderDidMnemonic);
+  // //new 
+  // const createHolderDidMnemonic = holderMnemonic + '//did//1'
+  // console.log("new holder mnemonic",createHolderDidMnemonic);
 
 
 
   const issuerAccount = Kilt.generateKeypair({ 
     type: "ed25519", 
-    seed: issuerMnemonic, 
+    seed: issuerSeed, 
   });
   const holderAccount = Kilt.generateKeypair({ 
-    seed: holderMnemonic, 
+    seed: holderSeed, 
     type: "ed25519", 
     
   });

@@ -4,49 +4,65 @@ import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/keyring';
 import { mnemonicValidate } from '@polkadot/util-crypto';
 import { ApiPromise, WsProvider } from '@polkadot/api';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 
-const EnterMnemonicScreen = ({ navigation }) => {
-  const [mnemonic, setMnemonic] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+type RootStackParamList = {
+  EnterMnemonic: undefined;
+  Address: { address: string; mnemonic: string };
+};
 
-  const checkAddressFromMnemonic = async (mnemonic) => {
+type EnterMnemonicScreenNavigationProp = NavigationProp<RootStackParamList, 'EnterMnemonic'>;
+
+interface Props {
+  navigation: EnterMnemonicScreenNavigationProp;
+}
+
+const EnterMnemonicScreen: React.FC<Props> = ({ navigation }) => {
+  const [mnemonic, setMnemonic] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  const checkAddressFromMnemonic = async (mnemonic: string): Promise<string> => {
     try {
       const isValid = mnemonicValidate(mnemonic);
       if (!isValid) {
-        console.log("invalid");
         throw new Error("Invalid mnemonic phrase");
       }
+      
       await cryptoWaitReady();
       const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
       const pair = keyring.addFromMnemonic(mnemonic);
       const address = pair.address;
+      
       const provider = new WsProvider('wss://peregrine.kilt.io/');
       const api = await ApiPromise.create({ provider });
+      
       const accountInfo = await api.query.system.account(address);
       if (accountInfo.data.free.toBigInt() === 0n && accountInfo.nonce.toNumber() === 0) {
         console.log("Address exists but has no activity");
       } else {
         console.log("Address exists with activity");
       }
+      
       await api.disconnect();
       return address;
     } catch (error) {
-        throw new Error("Invalid mnemonic or address not found");
+      throw new Error(error instanceof Error ? error.message : "Invalid mnemonic or address not found");
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!mnemonic.trim()) {
       Alert.alert("Error", "Mnemonic cannot be empty");
       return;
     }
+    
     setIsProcessing(true);
     try {
       const address = await checkAddressFromMnemonic(mnemonic);
-      
       navigation.navigate('Address', { address, mnemonic });
     } catch (error) {
-      Alert.alert("Error", error.message || "Failed to process mnemonic");
+      const errorMessage = error instanceof Error ? error.message : "Failed to process mnemonic";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -60,7 +76,7 @@ const EnterMnemonicScreen = ({ navigation }) => {
         placeholder="Enter your mnemonic here..."
         placeholderTextColor="#888"
         value={mnemonic}
-        onChangeText={setMnemonic}
+        onChangeText={(text: string) => setMnemonic(text)}
         multiline
         editable={!isProcessing}
       />

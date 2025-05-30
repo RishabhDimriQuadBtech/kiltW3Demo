@@ -6,7 +6,7 @@ import type {
 } from "@kiltprotocol/types";
 
 export async function verifyDid(
-  submitter: SignerInterface<"Ed25519", KiltAddress>,
+  submitter: SignerInterface<"Sr25519", KiltAddress>,
   didDocument: DidDocument,
   signers: SignerInterface[]
 ): Promise<{ didDocument: DidDocument; signers: SignerInterface[] }> {

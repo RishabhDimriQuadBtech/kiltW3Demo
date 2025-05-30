@@ -12,36 +12,57 @@ import {
   Clipboard,
 } from 'react-native';
 import * as Kilt from "@kiltprotocol/sdk-js";
-import 'react-native-url-polyfill/auto'; 
+import 'react-native-url-polyfill/auto';
+import { ConfigService, KiltKeyring } from '@kiltprotocol/sdk-js';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { verifyDid } from "../backend/addVerification2Did";
-import { generateAccounts } from "../backend/generateAccount";
-import { generateDid } from "../backend/generateDid";
+import { generateAccounts, GeneratedAccounts } from "../backend/generateAccount";
+import { generateDid, GenerateDidResponse } from "../backend/generateDid";
 import { issueCredential } from "../backend/issueCredential";
 import { claimW3N } from "../backend/claimW3N";
-import ImportWalletScreen from './ImportWalletScreen';
 
-const W3NScreen = ({ navigation }) => {
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState([]);
-  const [connected, setConnected] = useState(false);
-  const [api, setApi] = useState(null);
-  const [holderMnemonic, setHolderMnemonic] = useState('');
-  const [issuerMnemonic, setIssuerMnemonic] = useState('');
-  const [accountsGenerated, setAccountsGenerated] = useState(false);
+import { Crypto } from "@kiltprotocol/utils";
+import { Keyring } from "@polkadot/keyring/cjs/keyring";
+// Navigation types
+type RootStackParamList = {
+  W3N: undefined;
+  ImportWallet: undefined;
+};
 
-  const log = (message) => {
-    console.log(message);
-    setLogs((prevLogs) => [...prevLogs, { time: new Date().toISOString(), message: String(message) }]);
+type W3NScreenNavigationProp = NavigationProp<RootStackParamList, 'W3N'>;
+
+// Type for log entries
+interface LogEntry {
+  time: string;
+  message: string;
+}
+
+const W3NScreen = () => {
+  const did_1 = require("@kiltprotocol/did");
+  const navigation = useNavigation<W3NScreenNavigationProp>();
+  const [name, setName] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [connected, setConnected] = useState<boolean>(false);
+  const [api, setApi] = useState<Kilt.KiltApi | null>(null);
+  const [holderMnemonic, setHolderMnemonic] = useState<string>('');
+  const [issuerMnemonic, setIssuerMnemonic] = useState<string>('');
+  const [accountsGenerated, setAccountsGenerated] = useState<boolean>(false);
+
+  const log = (message: unknown) => {
+    const messageString = String(message);
+    console.log(messageString);
+    setLogs((prevLogs) => [
+      ...prevLogs,
+      { time: new Date().toISOString(), message: messageString }
+    ]);
   };
 
   useEffect(() => {
     connectToKilt();
     return () => {
       if (api) {
-        api.disconnect().then(() => {
-          log('Disconnected from KILT');
-        });
+        api.disconnect().then(() => log('Disconnected from KILT'));
       }
     };
   }, []);
@@ -52,23 +73,21 @@ const W3NScreen = ({ navigation }) => {
       const apiInstance = await Kilt.connect("wss://peregrine.kilt.io/");
       setApi(apiInstance);
       
-      if (Kilt.version) {
-        log(`KILT SDK Version: ${Kilt.version}`);
-      }
-      
+      log(`KILT SDK Version: ${Kilt.version || 'unknown'}`);
       log(`Available KILT modules: ${Object.keys(Kilt).join(', ')}`);
       
       setConnected(true);
       log("Connected to KILT network");
-      setLoading(false);
     } catch (error) {
-      log(`Connection error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      log(`Connection error: ${errorMessage}`);
       Alert.alert("Connection Error", "Failed to connect to KILT network");
+    } finally {
       setLoading(false);
     }
   };
 
-  const copyToClipboard = (text, type) => {
+  const copyToClipboard = (text: string, type: string) => {
     Clipboard.setString(text);
     Alert.alert("Copied", `${type} copied to clipboard!`);
   };
@@ -92,117 +111,117 @@ const W3NScreen = ({ navigation }) => {
 
     try {
       log("Starting W3N claim process...");
-      
-      const faucet = {
-        publicKey: new Uint8Array([
-          238, 93, 102, 137, 215, 142, 38, 187, 91, 53, 176, 68, 23, 64, 160, 101,
-          199, 189, 142, 253, 209, 193, 84, 34, 7, 92, 63, 43, 32, 33, 181, 210,
-        ]),
-        secretKey: new Uint8Array([
-          205, 253, 96, 36, 210, 176, 235, 162, 125, 84, 204, 146, 164, 76, 217,
-          166, 39, 198, 155, 45, 189, 161, 94, 215, 229, 128, 133, 66, 81, 25, 174,
-          3,
-        ]),
-      };
 
-      const [submitter] = (await Kilt.getSignersForKeypair({
-        keypair: faucet,
-        type: "Ed25519",
-      }));
+      // Define faucet keypair with proper TypeScript typing
+      // const faucet: Kilt.KiltKeyringPair = {
+      //   publicKey: new Uint8Array([
+      //     139,72,10,142,229,30,183,152,208,32,140,19,161,186,183,143,
+      //     217,215,189,94,12,95,196,202,234,110,54,187,37,166,2,158
+      //   ]),
+      //   secretKey: new Uint8Array([
+      //     109,119,167,31,116,23,124,39,116,62,96,69,109,42,12,90,
+      //     165,217,175,245,138,37,23,114,246,95,239,221,59,237,162,66
+      //   ]),
+      //   type: 'Sr25519',
+      // } as const;
 
-      const balance = await api.query.system.account(submitter.id);
+      // const [submitter] = await Kilt.getSignersForKeypair({
+      //   keypair: faucet,
+      //   type: "Sr25519",
+      // });
+      const faucetMnemonic =
+  'bag will genuine gloom sustain repair finger better session recycle able play'
+
+  const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
+// Set the correct SS58 prefix for KILT// KILT SS58 prefix
+
+  const faucet = keyring.addFromMnemonic(faucetMnemonic);
+// const faucet = Kilt.generateKeypair({ seed: faucetMnemonic })
+
+const [submitter] = await Kilt.getSignersForKeypair({
+  keypair: faucet,
+  type: 'Sr25519',
+})
+
+log(`Submitter address: ${submitter.id}`) ;
+
+      // const balance = await api.query.system.account(submitter.id);
+      // log(`Faucet balance: ${balance.toHuman()}`);
       
+      log(`submitter Id:- ${submitter.id}`);
+      const { data: balanceData } = await api.query.system.account(submitter.id);
+      const freeBalance = balanceData.free.toBigInt()
+      log(`Wallet balance (Planck):, ${freeBalance.toString()}`)
+  const kiltBalance = Number(freeBalance) / 10 ** 15
+  log(`Wallet balance (KILT):, ${kiltBalance}`)
+
       log("Generating accounts with mnemonics...");
-      let {
+      const {
         holderAccount,
         issuerAccount,
-        holderMnemonic,
-        issuerMnemonic,
+        holderMnemonic: generatedHolderMnemonic,
+        issuerMnemonic: generatedIssuerMnemonic,
         holderWallet,
         issuerWallet,
-      } = generateAccounts();
-      
+      }: GeneratedAccounts = generateAccounts();
 
-      // Store mnemonics
-      setHolderMnemonic(holderMnemonic);
-      setIssuerMnemonic(issuerMnemonic);
+      setHolderMnemonic(generatedHolderMnemonic);
+      setIssuerMnemonic(generatedIssuerMnemonic);
       setAccountsGenerated(true);
-      
-      log("keypair generation complete");
-      log(`ISSUER_ACCOUNT_ADDRESS=${issuerWallet.address}`);
-      log(`HOLDER_ACCOUNT_ADDRESS=${holderWallet.address}`);
-      log("Mnemonics generated and stored securely");
+
+      log(`ISSUER_ACCOUNT_ADDRESS: ${issuerWallet.address}`);
+      log(`HOLDER_ACCOUNT_ADDRESS: ${holderWallet.address}`);
 
       log("Generating holder DID...");
-      let holderDid = await generateDid(submitter, holderAccount);
+      const holderDid = await generateDid(submitter, holderAccount);
       log(`Holder DID: ${holderDid.didDocument.id}`);
 
-      log(`Claiming W3N: ${name}`);
-      try {
-        await claimW3N(
-          name,
-          holderDid.didDocument,
-          holderDid.signers,
-          submitter
-        );
-        log(`W3N claimed successfully: ${name}`);
-      } catch (w3nError) {
-        log(`W3N claim failed: ${w3nError.message}`);
-      }
+      const authKeypair = Crypto.makeKeypairFromUri(`${holderMnemonic}//did//0`, 'sr25519');
+      const didUri = `did:kilt:${authKeypair.address}`;
+      log(`didUri this one: ${didUri}`);
 
-      log("Generating issuer DID...");
-      let issuerDid = await generateDid(submitter, issuerAccount);
+      // try {
+      //   log(`Claiming W3N: ${name}`);
+      //   await claimW3N(
+      //     name,
+      //     holderDid.didDocument,
+      //     holderDid.signers,
+      //     submitter
+      //   );
+      //   log(`Successfully claimed W3N: ${name}`);
+      // } catch (w3nError) {
+      //   const errorMessage = w3nError instanceof Error ? w3nError.message : 'Unknown error';
+      //   log(`W3N claim failed: ${errorMessage}`);
+      // }
 
-      log("Verifying DID...");
-      issuerDid = await verifyDid(
-        submitter,
-        issuerDid.didDocument,
-        issuerDid.signers
-      );
+      // log("Generating issuer DID...");
+      // const issuerDid = await generateDid(submitter, issuerAccount);
 
-      // const faucetMnemonic =
-      //       'receive clutch item involve chaos clutch furnace arrest claw isolate okay together';
+      // log("Verifying DID...");
+      // const verifiedIssuerDid = await verifyDid(
+      //   submitter,
+      //   issuerDid.didDocument,
+      //   issuerDid.signers
+      // );
 
-      //   const faucet = Kilt.generateKeypair({ seed: faucetMnemonic });
-
-      //   const submitter = (await Kilt.getSignersForKeypair({
-      //       keypair: faucet,
-      //       type: 'Ed25519',
-      //   }))[0];
-      //   console.log('submitter address', submitter.id);
-
-      //   const balance = await api.query.system.account(submitter.id);
-      //   console.log('balance', balance.toHuman());
-      //   let { holderAccount, issuerAccount, getSubmittableAccount } =
-      //       generateAccounts();
-      //   console.log("holder")
-      //   console.log(holderAccount.publicKeyMultibase)
-        
-      //   console.log(holderAccount.secretKeyMultibase)
-      //   console.log('Successfully transferred tokens');
-
-      //   let holderDid = await generateDid(holderAccount, submitter);
-      //   console.log(holderDid.didDocument.id)
-        
-      log("Issuing credential...");
-      try {
-        const credential = await issueCredential(
-          issuerDid.didDocument,
-          holderDid.didDocument,
-          issuerDid.signers,
-          submitter
-        );
-
-        log("Process completed successfully!");
-        log(`Credential ID: ${credential.id}`);
-      } catch (credentialError) {
-        log(`Credential issuance failed: ${credentialError.message}`);
-        log("Process completed with errors in credential issuance.");
-      }
-      
+      // log("Issuing credential...");
+      // try {
+      //   const credential = await issueCredential(
+      //     verifiedIssuerDid.didDocument,
+      //     holderDid.didDocument,
+      //     verifiedIssuerDid.signers,
+      //     submitter
+      //   );
+      //   log(`Credential issued with ID: ${credential.id}`);
+      //   log("Process completed successfully!");
+      // } catch (credentialError) {
+      //   const errorMessage = credentialError instanceof Error ? credentialError.message : 'Unknown error';
+      //   log(`Credential issuance failed: ${errorMessage}`);
+      // }
     } catch (error) {
-      log(`Error: ${error.message}`);
-      Alert.alert("Error", `Operation failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      log(`Process failed: ${errorMessage}`);
+      Alert.alert("Error", `Operation failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -240,14 +259,14 @@ const W3NScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
-        
+
         <TouchableOpacity
           style={styles.importWalletButton}
           onPress={() => navigation.navigate('ImportWallet')}
         >
           <Text style={styles.importWalletText}>Already have a wallet?</Text>
         </TouchableOpacity>
-        
+
         {accountsGenerated && (
           <View style={styles.mnemonicContainer}>
             <Text style={styles.mnemonicTitle}>Generated Mnemonics:</Text>
@@ -283,7 +302,7 @@ const W3NScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
-        
+
         <View style={styles.logContainer}>
           <Text style={styles.logTitle}>Logs:</Text>
           <View style={styles.logScroll}>

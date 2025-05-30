@@ -10,7 +10,7 @@ export async function claimW3N(
   name: string,
   holderDid: DidDocument,
   signers: SignerInterface[],
-  submitter: SignerInterface<"Ed25519", KiltAddress>
+  submitter: SignerInterface<"Sr25519", KiltAddress>
 ): Promise<string[] | undefined> {
   const api = Kilt.ConfigService.get("api");
 

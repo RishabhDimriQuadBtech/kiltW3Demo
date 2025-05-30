@@ -1,7 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 
-const ImportWalletScreen = ({ navigation }) => {
+type RootStackParamList = {
+  EnterMnemonic: undefined;
+};
+
+type ImportWalletScreenNavigationProp = NavigationProp<RootStackParamList, 'EnterMnemonic'>;
+
+interface Props {
+  navigation: ImportWalletScreenNavigationProp;
+}
+
+const ImportWalletScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity

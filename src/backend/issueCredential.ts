@@ -11,7 +11,7 @@ export async function issueCredential(
   issuerDid: DidDocument,
   holderDid: DidDocument,
   signers: SignerInterface[],
-  submitter: SignerInterface<"Ed25519", KiltAddress>
+  submitter: SignerInterface<"Sr25519", KiltAddress>
 ): Promise<Types.VerifiableCredential> {
   const passportCType = await CType.fetchFromChain(
     "kilt:ctype:0x05f099b888ddf3e8ef4fc690f12ca59d967bf934d58dda723921893cff0d8734"

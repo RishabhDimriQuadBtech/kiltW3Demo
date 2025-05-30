@@ -14,237 +14,180 @@ import { verifyDid } from "../backend/addVerification2Did";
 import { generateDid } from "../backend/generateDid";
 import { issueCredential } from "../backend/issueCredential";
 import { claimW3N } from "../backend/claimW3N";
-import { Keyring } from '@polkadot/keyring';
+import { Keyring} from '@polkadot/keyring';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { ApiPromise, WsProvider } from '@polkadot/api';
+import { typesBundle } from '@kiltprotocol/type-definitions';
 
 import { Crypto } from "@kiltprotocol/utils";
-import {getFullDid} from '@kiltprotocol/did';
+import { getFullDid } from '@kiltprotocol/did';
 import { mnemonicToMiniSecret } from "@polkadot/util-crypto";
 import { u8aToHex } from "@polkadot/util";
 import { didResolve } from '../backend/didResolve';
 import { queryW3N } from '../backend/queryW3N';
 
-const AddressScreen = ({ route, navigation }) => {
-  
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
+import { DidDocument } from '@kiltprotocol/types';
+
+type RootStackParamList = {
+  AddressScreen: { address: string; mnemonic: string };
+};
+
+type AddressScreenRouteProp = RouteProp<RootStackParamList, 'AddressScreen'>;
+
+type Props = NativeStackScreenProps<RootStackParamList, 'AddressScreen'>;
+
+type KiltApi = ApiPromise; 
+interface GenerateDidResult {
+  didDocument: DidDocument;
+  signers: Kilt.SigningKeypair[];
+}
+
+const AddressScreen: React.FC<Props> = ({ route, navigation }) => {
   const did_1 = require("@kiltprotocol/did");
   const { address, mnemonic } = route.params;
-  const [w3nName, setW3nName] = useState('');
-  const [holderDid, setHolderDid] = useState('');
-  const [newW3nName, setNewW3nName] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [checkingW3n, setCheckingW3n] = useState(false);
-  const [loadingDid, setLoadingDid] = useState(false);
-  const [processingW3n, setProcessingW3n] = useState(false);
-  const [api, setApi] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [hasW3n, setHasW3n] = useState(false);
+  
+  const [w3nName, setW3nName] = useState<string>('');
+  const [holderDid, setHolderDid] = useState<string>('');
+  const [newW3nName, setNewW3nName] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [checkingW3n, setCheckingW3n] = useState<boolean>(false);
+  const [loadingDid, setLoadingDid] = useState<boolean>(false);
+  const [processingW3n, setProcessingW3n] = useState<boolean>(false);
+  const [api, setApi] = useState<KiltApi | null>(null);
+  const [logs, setLogs] = useState<{ time: string; message: string }[]>([]);
+  const [hasW3n, setHasW3n] = useState<boolean>(false);
 
-  const log = (message) => {
+  const log = (message: string) => {
     console.log(message);
-    setLogs((prevLogs) => [...prevLogs, { time: new Date().toISOString(), message: String(message) }]);
+    setLogs(prev => [...prev, { time: new Date().toISOString(), message }]);
   };
 
   useEffect(() => {
     initializeConnection();
   }, []);
 
-  const initializeConnection = async () => {
+  const initializeConnection = async (): Promise<void> => {
     try {
       setLoading(true);
       log("Connecting to KILT network...");
-      
-      const apiInstance = await Kilt.connect("wss://peregrine.kilt.io/");
-      setApi(apiInstance);
+
+      const provider = new WsProvider("wss://peregrine.kilt.io/");
+      const apiInstance = await ApiPromise.create({ provider, typesBundle });
+      setApi(apiInstance as KiltApi);
       log("Connected to KILT network");
-      
-      await retrieveHolderDid(apiInstance);
-      
-      await checkForW3N(apiInstance);
-      
-    } catch (error) {
+
+      const did = await retrieveHolderDid(apiInstance as KiltApi);
+      if (did) {
+        await checkForW3N(apiInstance as KiltApi, did);
+      } else {
+        log("DID not found, skipping W3N check");
+      }
+    } catch (error: any) {
       log(`Error: ${error.message}`);
-      Alert.alert("Connection Error", `Failed to connect to KILT network: ${error.message}`);
+      Alert.alert("Connection Error", `Failed to connect to KILT: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const retrieveHolderDid = async (apiInstance) => {
+  const retrieveHolderDid = async (apiInstance: KiltApi): Promise<string | null> => {
     try {
       setLoadingDid(true);
       log("Retrieving holder DID...");
 
-  const activeApi = apiInstance || api;
-  
-  if (!activeApi) {
-    log("No API connection available");
-    return null;
-  }
-
-  await cryptoWaitReady();
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
-  const pair = keyring.addFromMnemonic(mnemonic);
-
-
-  //
-const walletKeypair = Crypto.makeKeypairFromUri(mnemonic, 'sr25519')// ......
-
-// DID authentication keypair (different keypair, derived from wallet mnemonic)
-const authKeypair = Crypto.makeKeypairFromUri(`${mnemonic}//did//0`, 'sr25519') ///.....
-
-// Other DID keys
-// const assertionKeypair = Crypto.makeKeypairFromUri(`${mnemonic}//did//0`, 'sr25519')
-// const keyAgreementKeypair = Crypto.makeEncryptionKeypairFromSeed(
-//   Crypto.mnemonicToMiniSecret(`${mnemonic}//did//0`)
-// )
-
-console.log('Wallet address:', walletKeypair.address)
-console.log('DID Authentication address:', authKeypair.address)
-// console.log('DID Assertion address:', assertionKeypair.address)
-// console.log('DID KeyAgreement address:', keyAgreementKeypair.address)
-
-
-
-
-  const keypair = Crypto.makeKeypairFromUri(mnemonic, 'sr25519')
-  const didUri = `did:kilt:${authKeypair.address}`
-  log(`didUri: ${didUri}`);
-  const derivedAddress = pair.address;
-  log("Looking up DID for derived address: " + derivedAddress);
-
-  const newDid = await getFullDid(derivedAddress);
-  
-  // const newDid = "did:kilt:4o4bzJKFuqX4UxKRyBSGCnEUPzhQ3FRmEZ9UoBuPjFbs7WcQ";
-  const { didDocument } = await did_1.resolver.resolve(didUri);
-  if(didDocument){
-    log("did document: "+didDocument.id);
-    setHolderDid(didDocument.id);
-    return;
-  }
-  else{
-    log("did not found");
-  }
-  return;
-  
-} catch (error) {
-  log(`Error retrieving DID: ${error.message}`);
-  Alert.alert("Error", `Failed to retrieve DID: ${error.message}`);
-  setHolderDid("");
-  return null;
-} finally {
-  setLoadingDid(false);
-}
-  };
-
-  // const retrieveHolderDid = async (apiInstance) => {
-  //   try {
-  //     setLoadingDid(true);
-  //     // setResolutionError('');
-  //     log(`Starting DID resolution for ${address}`);
-  //     const dids = await apiInstance.call.did.queryByAccount(address);
-  //     console.log(dids.map(did => did.uri));
-  //     // const didUri = await getFullDid(address);
-  //     // const didUri = `did:kilt:${address}`;
-      // const didUri="did:kilt:4o4bzJKFuqX4UxKRyBSGCnEUPzhQ3FRmEZ9UoBuPjFbs7WcQ";
-      // const document = await didResolve(didUri);
-      // log(`document ${document}`);
-      
-  //     if (!document) {
-  //       log('No DID document found');
-  //       // setDidDocument(null);
-  //       setHolderDid('');
-  //       return;
-  //     }
-
-  //     log('Resolved DID document successfully');
-  //     // setDidDocument(document);
-  //     setHolderDid(document.id);
-      
-  //     // Optional: Verify document structure
-  //     if (!document.authentication || document.authentication.length === 0) {
-  //       log('⚠️ DID document missing authentication keys');
-  //     }
-
-  //   } catch (error) {
-  //     log(`Resolution failed: ${error.message}`);
-  //     // setResolutionError(error.message);
-  //     // setDidDocument(null);
-  //     setHolderDid('');
-  //     Alert.alert('DID Resolution Error', error.message);
-  //   } finally {
-  //     setLoadingDid(false);
-  //   }
-  // };
-
-  const checkForW3N = async (apiInstance) => {
-    try {
-      setCheckingW3n(true);
-      log("Checking if address has associated W3N...");
-      
-      const activeApi = apiInstance || api;
-      
-      if (!activeApi) {
-        log("No API connection available");
-        return;
-      }
-      
       await cryptoWaitReady();
       const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
       const pair = keyring.addFromMnemonic(mnemonic);
-      log("Looking up W3N for address: " + pair.address);
-      let newAdd=holderDid;
+      // const seed = u8aToHex(mnemonicToMiniSecret(mnemonic));
       
-      try {
-        const w3Names = await activeApi.query.web3Names.names(newAdd.replace('did:kilt:', ''));
-        log(`w3N ${w3Names.toHuman()}`);
-        if (w3Names && !w3Names.isEmpty) {
-          let foundW3n = w3Names.toString();
-          if (foundW3n.startsWith('0x')) {
-            try {
-              foundW3n = Buffer.from(foundW3n.slice(2), 'hex').toString('utf8');
-              log(`Decoded W3N from hex: ${foundW3n}`);
-            } catch (decodeError) {
-              log(`Error decoding hex W3N: ${decodeError.message}`);
-            }
-          }
-          setW3nName(foundW3n);
-          setHasW3n(true);
-          log(`Found W3N: ${foundW3n}`);
-          return;
-        }
-        
-        log("No W3N found for this address");
-        setHasW3n(false);
-      } catch (directError) {
-        log(`W3N lookup failed: ${directError.message}`);
+      // const seed = mnemonicToMiniSecret(mnemonic);
+      // const issuerAccount = Kilt.generateKeypair({ 
+      //     type: "ed25519", 
+      //     seed: seed, 
+      //   });
+
+//         const seed = mnemonicToMiniSecret(mnemonic);
+
+// const keypairSec = Crypto.makeEncryptionKeypairFromSeed(seed);
+// const keypairPub=Crypto.makeKeypairFromSeed(seed);
+
+// log(`Public Key: ${ Array.from(keypairPub.publicKey)}`);
+// log(`Secret Key:',${ Array.from(keypairSec.secretKey)}`);
+//       // log(issuerAccount.publicKeyMultibase)
+//       const { data: balanceData } = await apiInstance.query.system.account(pair.address)
+//   const freeBalance = balanceData.free.toBigInt()
+
+//   console.log('Wallet balance (Planck):', freeBalance.toString())
+//   const kiltBalance = Number(freeBalance) / 10 ** 15
+//   console.log('Wallet balance (KILT):', kiltBalance)
+      
+      const authKeypair = Crypto.makeKeypairFromUri(`${mnemonic}//did//0`, 'sr25519');
+      const didUri = `did:kilt:${authKeypair.address}`;
+      log(`didUri: ${didUri}`);
+
+      const { didDocument }: { didDocument: DidDocument } = await did_1.resolver.resolve(didUri);
+      if (didDocument) {
+        log(`DID document found: ${didDocument.id}`);
+        setHolderDid(didDocument.id);
+        return didDocument.id;
+      } else {
+        log("DID not found");
+        return null;
+      }
+    } catch (error: any) {
+      log(`Error retrieving DID: ${error.message}`);
+      Alert.alert("Error", `Failed to retrieve DID: ${error.message}`);
+      setHolderDid("");
+      return null;
+    } finally {
+      setLoadingDid(false);
+    }
+  };
+
+  const checkForW3N = async (apiInstance: KiltApi, did: string): Promise<void> => {
+    try {
+      setCheckingW3n(true);
+      log("Checking for Web3 Name...");
+
+      await cryptoWaitReady();
+      const key = did.replace('did:kilt:', '');
+      const names = await apiInstance.query.web3Names.names(key);
+      const found = names.toHuman() as string | null;
+
+      if (found) {
+        log(`Found W3N: ${found}`);
+        setW3nName(found);
+        setHasW3n(true);
+      } else {
+        log("No W3N found");
         setHasW3n(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       log(`Error checking W3N: ${error.message}`);
-      Alert.alert("Error", `Failed to check W3N: ${error.message}`);
+      Alert.alert("Error", `W3N check failed: ${error.message}`);
       setHasW3n(false);
     } finally {
       setCheckingW3n(false);
     }
   };
 
-  const claimNewW3Name = async () => {
+  const claimNewW3Name = async (): Promise<void> => {
     if (!newW3nName.trim()) {
-      Alert.alert("Error", "Please enter a W3N name");
+      Alert.alert("Error", "Please enter a W3N");
       return;
     }
-    
     if (!api) {
-      Alert.alert("Error", "Not connected to KILT network");
+      Alert.alert("Error", "Not connected to KILT");
       return;
     }
-    
+
     setProcessingW3n(true);
     setLogs([]);
-    
     try {
-      log("Starting W3N claim process...");
-      
+      log("Starting W3N claim...");
+
       const faucet = {
         publicKey: new Uint8Array([
           238, 93, 102, 137, 215, 142, 38, 187, 91, 53, 176, 68, 23, 64, 160, 101,
@@ -256,84 +199,43 @@ console.log('DID Authentication address:', authKeypair.address)
           3,
         ]),
       };
-      
-      const [submitter] = (await Kilt.getSignersForKeypair({
-        keypair: faucet,
-        type: "Ed25519",
-      }));
-      
+      const [submitter] = await Kilt.getSignersForKeypair({ keypair: faucet, type: 'Ed25519' });
       await cryptoWaitReady();
       const keyring = new Keyring({ type: 'sr25519', ss58Format: 38 });
-      const accountPair = keyring.addFromMnemonic(mnemonic);
+      const holderPair = keyring.addFromMnemonic(mnemonic);
       const holderSeed = u8aToHex(mnemonicToMiniSecret(mnemonic));
-      const holderAccount = Kilt.generateKeypair({ 
-        type: "sr25519", 
-        seed: holderSeed, 
-      });
-      
-      log("Using existing account address: " + holderAccount.publicKeyMultibase);
-      log("Generating holder DID...");
-      
-      let holderDidObj = await generateDid(submitter, holderAccount);
-      log(`Holder DID: ${holderDidObj.didDocument.id}`);
-      
-      const formattedDid = holderDidObj.didDocument.id.startsWith('did:kilt:')
-        ? holderDidObj.didDocument.id
-        : `did:kilt:${holderDidObj.didDocument.id}`;
-      
+      const holderAccount = Kilt.generateKeypair({ type: 'ed25519', seed: holderSeed });
+
+      log(`Generating holder DID...`);
+      const holderDidObj = (await generateDid(submitter, holderAccount)) as GenerateDidResult;
+      const formattedDid= holderDidObj.didDocument.id;
       setHolderDid(formattedDid);
-      
+
       log(`Claiming W3N: ${newW3nName}`);
-      try {
-        await claimW3N(
-          newW3nName,
-          holderDidObj.didDocument,
-          holderDidObj.signers,
-          submitter
-        );
-        
-        log(`W3N claimed successfully: ${newW3nName}`);
-        setW3nName(newW3nName);
-        setHasW3n(true);
-      } catch (w3nError) {
-        log(`W3N claim failed: ${w3nError.message}`);
-        Alert.alert("Error", `W3N claim failed: ${w3nError.message}`);
-        return;
-      }
-      
+      await claimW3N(newW3nName, holderDidObj.didDocument, holderDidObj.signers, submitter);
+      log(`W3N claimed: ${newW3nName}`);
+      setW3nName(newW3nName);
+      setHasW3n(true);
+
       log("Generating issuer DID...");
-      const issuerAccount = Kilt.generateKeypair({
-        type: "sr25519",
-      });
-      
-      let issuerDid = await generateDid(submitter, issuerAccount);
-      
+      const issuerAccount = Kilt.generateKeypair({ type: 'sr25519' });
+      let issuerDid = (await generateDid(submitter, issuerAccount)) as GenerateDidResult;
+
       log("Verifying DID...");
-      issuerDid = await verifyDid(
-        submitter,
-        issuerDid.didDocument,
-        issuerDid.signers
-      );
-      
+      issuerDid = (await verifyDid(submitter, issuerDid.didDocument, issuerDid.signers)) as GenerateDidResult;
+
       log("Issuing credential...");
-      try {
-        const credential = await issueCredential(
-          issuerDid.didDocument,
-          holderDidObj.didDocument,
-          issuerDid.signers,
-          submitter
-        );
-        
-        log("Process completed successfully!");
-        log(`Credential ID: ${credential.id}`);
-        Alert.alert("Success", `W3N '${newW3nName}' claimed successfully and credential issued!`);
-      } catch (credentialError) {
-        log(`Credential issuance failed: ${credentialError.message}`);
-        log("Process completed with errors in credential issuance.");
-      }
-    } catch (error) {
+      const credential = await issueCredential(
+        issuerDid.didDocument,
+        holderDidObj.didDocument,
+        issuerDid.signers,
+        submitter
+      );
+      log(`Credential issued: ${credential.id}`);
+      Alert.alert("Success", `W3N '${newW3nName}' claimed and credential issued.`);
+    } catch (error: any) {
       log(`Error: ${error.message}`);
-      Alert.alert("Error", `Operation failed: ${error.message}`);
+      Alert.alert("Error", error.message);
     } finally {
       setProcessingW3n(false);
     }
